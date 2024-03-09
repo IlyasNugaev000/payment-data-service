@@ -1,0 +1,44 @@
+version: '3.5'
+
+services:
+    app:
+        container_name: np-core-app
+        user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        environment:
+            FPM_USER: www
+            FPM_GROUP: www
+        volumes:
+            - type: bind
+              source: ./
+              target: /var/www
+            - type: bind
+              source: ./docker/php/local.ini
+              target: /usr/local/etc/php/conf.d/local.ini
+        networks:
+            - app-network
+            - proxy-network
+
+    nginx:
+        container_name: np-core-nginx
+        image: nginx:latest
+        volumes:
+            - type: bind
+              source: ./
+              target: /var/www
+            - type: bind
+              source: ./docker/nginx/conf.d/
+              target: /etc/nginx/conf.d/
+        networks:
+            - app-network
+            - proxy-network
+        command: /bin/bash -c "cp /etc/nginx/conf.d/app.conf.template /etc/nginx/conf.d/app.conf && nginx -g 'daemon off;'"
+
+networks:
+    app-network:
+        driver: bridge
+    proxy-network:
+        driver: bridge
+        external: true
